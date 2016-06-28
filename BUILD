@@ -1,6 +1,6 @@
 
-python_library(
+py_library(
   name = "asana2sql",
-  srcs = glob(["**/*.py"),
+  srcs = glob(["**/*.py"]),
   deps = [],
 )
