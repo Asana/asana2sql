@@ -1,28 +1,67 @@
 from enum import Enum
+import re
 import util
 
 FIELD_DEFINITION_TEMPLATE = """"{name}" {type}"""
+PRIMARY_KEY_DEFINITION_TEMPLATE = """"{name}" {type} NOT NULL PRIMARY KEY"""
+
+class SqlType(Enum):
+    STRING = "VARCHAR(1024)"
+    TEXT = "TEXT"
+    INTEGER = "BIGINT"
+    DATETIME = "DATETIME"
+    BOOLEAN = "BOOLEAN"
+
 
 class Field(object):
-    def __init__(self, asana_name, sql_type, sql_name = None):
-        self._asana_name = asana_name
-        self._sql_name = sql_name
-        self._sql_type = sql_type
+    def __init__(self, sql_name, sql_type):
+        self.sql_name = util.sql_safe_name(sql_name)
 
-    def sql_name(self):
-        return util.sql_safe_name(self._sql_name if self._sql_name else self._asana_name)
-
-    def asana_name(self):
-        return self._asana_name
-
-    def sql_type(self):
-        return self._sql_type
+    def required_fields(self, task):
+        return set()
 
     def get_data_from_task(self, task):
         """Get field data from the task object."""
-        pass
+        raise MethodNotImplementedError()
 
     def field_definition_sql(self):
-        return FIELD_DEFINITION_TEMPLATE.format(
-                name=self.sql_name(),
-                type=self.sql_type())
+        """Return the SQL required to define this field."""
+        raise MethodNotImplementedError()
+
+
+class SimpleField(Field):
+    def __init__(self, name, type, default=None, primary_key=False):
+        super(SimpleField, self).__init__(name, type)
+        self.name = name
+        self.sql_type = type
+        self._default = default
+        self._primary_key = primary_key
+
+    def required_fields(self):
+        return set([self.name])
+
+    def get_data_from_task(self, task):
+        data = task.get(self.name)
+
+        if data is None:
+            data = self._default
+
+        if data is None:
+            return "NULL"
+
+        if self.sql_type in [SqlType.STRING, SqlType.TEXT, SqlType.DATETIME]:
+            return '"{}"'.format(re.sub('"', '\\"', str(data)))
+        elif self.sql_type == SqlType.BOOLEAN:
+            return "1" if data else "0"
+        else:
+            return str(data)
+
+    def field_definition_sql(self):
+        if (self._primary_key):
+            return PRIMARY_KEY_DEFINITION_TEMPLATE.format(
+                    name=self.sql_name,
+                    type=self.sql_type)
+        else:
+            return FIELD_DEFINITION_TEMPLATE.format(
+                    name=self.sql_name,
+                    type=self.sql_type)
