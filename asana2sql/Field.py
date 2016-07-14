@@ -5,19 +5,21 @@ import util
 FIELD_DEFINITION_TEMPLATE = """"{name}" {type}"""
 PRIMARY_KEY_DEFINITION_TEMPLATE = """"{name}" {type} NOT NULL PRIMARY KEY"""
 
-class SqlType(Enum):
+class SqlType(object):
     STRING = "VARCHAR(1024)"
     TEXT = "TEXT"
     INTEGER = "BIGINT"
     DATETIME = "DATETIME"
+    DATE = "DATE"
     BOOLEAN = "BOOLEAN"
 
 
 class Field(object):
     def __init__(self, sql_name, sql_type):
         self.sql_name = util.sql_safe_name(sql_name)
+        self.sql_type = sql_type
 
-    def required_fields(self, task):
+    def required_fields(self):
         return set()
 
     def get_data_from_task(self, task):
@@ -26,7 +28,9 @@ class Field(object):
 
     def field_definition_sql(self):
         """Return the SQL required to define this field."""
-        raise MethodNotImplementedError()
+        return FIELD_DEFINITION_TEMPLATE.format(
+                name=self.sql_name,
+                type=self.sql_type)
 
 
 class SimpleField(Field):

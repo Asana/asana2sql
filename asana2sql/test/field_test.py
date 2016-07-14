@@ -10,8 +10,9 @@ class FieldTestCase(unittest.TestCase):
 
     def test_complex_sql_name(self):
         simple_field = Field("A test field.", SqlType.STRING)
-        self.assertEquals(simple_field.sql_name, "a_test_field",
-                          "Derived field names should strip punctuation and convert spaces to underscores.")
+        self.assertEquals(simple_field.sql_name, "A_test_field",
+                          "Derived field names should strip punctuation and "
+                          "convert spaces to underscores.")
 
 
 if __name__ == '__main__':

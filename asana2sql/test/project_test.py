@@ -15,34 +15,40 @@ class ProjectTestCase(unittest.TestCase):
 
         project = Project(asana_client, 1234, None, [])
 
-        self.assertEquals(project.table_name(), "test_table")
+        self.assertEquals(project.table_name(), "Test_Table")
 
     def test_create_empty_table(self):
         asana_client = Mock()
+        db_wrapper = Mock()
 
         project = Project(asana_client, 1234, "test_table", [])
 
         self.assertEquals(project.table_name(), "test_table")
-        self.assertEquals(project.create_table_sql(),
-            '''CREATE TABLE "test_table" (task_id BIGINT NOT NULL,PRIMARY KEY task_id)''')
+
+        project.create_table(db_wrapper)
+
+        db_wrapper.write.assert_called_with(
+            '''CREATE TABLE IF NOT EXISTS "test_table" ();''')
 
     def test_create_table_with_fields(self):
         asana_client = Mock()
+        db_wrapper = Mock()
 
         project = Project(asana_client, 1234, "test_table",
-                          [Field("asana1", "BIGINT", "field1"),
-                           Field("asana2", "VARCHAR(1024)", "Complex and invalid field name."),
-                           Field("asana3", "FLOAT", "a_different_field_name")])
+                          [Field("task_id", "BIGINT NOT NULL PRIMARY KEY"),
+                           Field("field1", "BIGINT"),
+                           Field("Complex and invalid field name.", "VARCHAR(1024)"),
+                           Field("a_different_field_name", "FLOAT")])
 
         self.assertEquals(project.table_name(), "test_table")
+        project.create_table(db_wrapper)
 
-        self.assertEquals(
-                project.create_table_sql(),
-                '''CREATE TABLE "test_table" (task_id BIGINT NOT NULL,'''
+        db_wrapper.write.assert_called_with(
+                '''CREATE TABLE IF NOT EXISTS "test_table" ('''
+                '''"task_id" BIGINT NOT NULL PRIMARY KEY,'''
                 '''"field1" BIGINT,'''
-                '''"complex_and_invalid_field_name" VARCHAR(1024),'''
-                '''"a_different_field_name" FLOAT,'''
-                '''PRIMARY KEY task_id)''')
+                '''"Complex_and_invalid_field_name" VARCHAR(1024),'''
+                '''"a_different_field_name" FLOAT);''')
 
 if __name__ == '__main__':
     unittest.main()

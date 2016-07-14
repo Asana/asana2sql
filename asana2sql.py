@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
+import pyodbc
 import requests
 
 from asana2sql.project import Project
-from asana import Client
+from output import DatabaseWrapper
+from asana import Client, session
 
 def arg_parser():
     parser = argparse.ArgumentParser()
@@ -47,11 +49,29 @@ def arg_parser():
             action="store_false",
             help="Turn off HTTPS verification.")
 
+    # DB options
+    db_args = parser.add_argument_group('Database Options')
+
+    db_args.add_argument(
+            "--odbc_string",
+            help="ODBC connection string.")
+
+    db_args.add_argument(
+            "--dump_sql",
+            action="store_true",
+            default=False,
+            help="Dump SQL commands to STDOUT.")
+
+    db_args.add_argument(
+            "--dry",
+            action="store_true",
+            default=False,
+            help="Dry run.  Do not actually run any writes to the database.")
+
     # Commands
     subparsers = parser.add_subparsers(
             title="Commands",
             dest="command")
-
 
     create_table_parser = subparsers.add_parser(
             'create',
@@ -59,7 +79,10 @@ def arg_parser():
 
     export_parser = subparsers.add_parser(
             'export',
-            help="Export the tasks in the project to SQL.")
+            help="Export the tasks in the project, "
+                 "not deleting deleted tasks from the database.")
+
+    """
     export_parser.add_argument("--include-complete",
             dest="include_complete",
             action='store_true',
@@ -68,6 +91,7 @@ def arg_parser():
             dest="include_complete",
             action='store_false',
             help="Exclude completed tasks.")
+            """
 
     return parser
 
@@ -93,14 +117,22 @@ def main():
 
     project = Project(client, args.project_id, args.table_name, [])
 
+    db_client = None
+    if args.odbc_string:
+        print("Connecting to database.")
+        db_client = pyodbc.connect(args.odbc_string)
+
+    db_wrapper = DatabaseWrapper(db_client, dump_sql=args.dump_sql, dry=args.dry)
+
     if args.derive_fields:
         project.add_derived_fields()
 
     if args.command == 'create':
-        print(project.create_table_sql())
+        project.create_table(db_wrapper)
+    elif args.command == 'export':
+        project.export(db_wrapper)
 
-    if args.command == 'export':
-        print(project.export_sql())
+    db_wrapper.commit()
 
 
 if __name__ == '__main__':
