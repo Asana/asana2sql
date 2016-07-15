@@ -18,7 +18,7 @@ SELECT_TEMPLATE = (
         """SELECT {columns} FROM "{table_name}";""")
 
 DELETE_TEMPLATE = (
-        """DELETE FROM "{table_name}" WHERE {id_column} = {id_value};""")
+        """DELETE FROM "{table_name}" WHERE {id_column} = ?;""")
 
 class CustomFieldType(object):
     TEXT = 0
@@ -36,7 +36,8 @@ class Project(object):
         self._asana_client = asana_client
         self._db_client = db_client
         self._config = config
-        self._fields = fields
+        self._direct_fields = []
+        self._indirect_fields = []
 
         self._project_id = self._config.project_id
         self._table_name = self._config.table_name
@@ -44,6 +45,9 @@ class Project(object):
         self._project_data_cache = None
         self._task_cache = None
         self._workspace = workspace.Workspace(asana_client, db_client, config)
+
+        for field in fields:
+            self._add_field(field)
 
     def _project_data(self):
         if self._project_data_cache is None:
@@ -55,7 +59,7 @@ class Project(object):
         return self._project_data_cache
 
     def _required_fields(self):
-        return set(field_names for field in self._fields
+        return set(field_names for field in self._direct_fields + self._indirect_fields
                                for field_names in field.required_fields())
 
     def _tasks(self):
@@ -72,13 +76,20 @@ class Project(object):
         return self._project_data()["name"]
 
     def add_derived_fields(self):
-        self._fields += fields.default_fields(self._workspace)
+        for field in fields.default_fields(self._workspace):
+            self._add_field(field)
+
+    def _add_field(self, field):
+        if field.sql_name:
+            self._direct_fields.append(field)
+        else:
+            self._indirect_fields.append(field)
 
     def create_table(self):
         sql = CREATE_TABLE_TEMPLATE.format(
                 table_name=self.table_name(),
                 columns=",".join([
-                        field.field_definition_sql() for field in self._fields]))
+                        field.field_definition_sql() for field in self._direct_fields]))
         self._db_client.write(sql)
 
     def export(self):
@@ -86,23 +97,25 @@ class Project(object):
             self.insert_or_replace(task)
 
     def insert_or_replace(self, task):
-        columns = ",".join(field.sql_name for field in self._fields)
-        values = ",".join("?" for field in self._fields)
-        params = [field.get_data_from_task(task) for field in self._fields]
+        columns = ",".join(field.sql_name for field in self._direct_fields)
+        values = ",".join("?" for field in self._direct_fields)
+        params = [field.get_data_from_task(task) for field in self._direct_fields]
         self._db_client.write(
                 INSERT_OR_REPLACE_TEMPLATE.format(
                     table_name=self.table_name(),
                     columns=columns,
                     values=values),
                 *params)
+        for field in self._indirect_fields:
+            field.get_data_from_task(task)
 
     def delete(self, task_id):
         id_field = self._id_field()
         self._db_client.write(
                 DELETE_TEMPLATE.format(
                     table_name=self.table_name(),
-                    id_column=id_field.sql_name,
-                    id_value=task_id))
+                    id_column=id_field.sql_name),
+                task_id)
 
     def synchronize(self):
         db_task_ids = self.db_task_ids()
@@ -120,7 +133,7 @@ class Project(object):
         return set(task.get("id") for task in self._tasks())
 
     def _id_field(self):
-        return self._fields[0]  # TODO: make the id field special.
+        return self._direct_fields[0]  # TODO: make the id field special.
 
     def db_task_ids(self):
         id_field = self._id_field()

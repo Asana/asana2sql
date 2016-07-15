@@ -76,6 +76,27 @@ class ParentIdField(Field):
         else:
             return None
 
+class ProjectsField(Field):
+    def __init__(self, workspace):
+        super(ProjectsField, self).__init__(None, None)
+        self._workspace = workspace
+
+    def required_fields(self):
+        return ["id", "projects.id", "projects.name"]
+
+    def get_data_from_task(self, task):
+        projects = task.get("projects", [])
+
+        new_project_ids = set(project["id"] for project in projects)
+        old_project_ids = set(self._workspace.task_memberships(task["id"]))
+        stale_project_ids = old_project_ids.difference(new_project_ids)
+
+        for project in projects:
+            self._workspace.add_task_to_project(task["id"], project);
+
+        for project_id in stale_project_ids:
+            self._workspace.remove_task_from_project(task["id"], project_id)
+
 def default_fields(workspace):
     return [TaskIdPrimaryKeyField(),
             NameField(),
@@ -89,6 +110,7 @@ def default_fields(workspace):
             NumHearts(),
             AssigneeField(workspace),
             AssigneeStatus(),
+            ProjectsField(workspace),
             ParentIdField(),
             ]
 

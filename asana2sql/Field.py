@@ -16,7 +16,7 @@ class SqlType(object):
 
 class Field(object):
     def __init__(self, sql_name, sql_type):
-        self.sql_name = util.sql_safe_name(sql_name)
+        self.sql_name = sql_name
         self.sql_type = sql_type
 
     def required_fields(self):
@@ -64,3 +64,4 @@ class SimpleField(Field):
             return FIELD_DEFINITION_TEMPLATE.format(
                     name=self.sql_name,
                     type=self.sql_type)
+
