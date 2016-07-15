@@ -10,6 +10,12 @@ CREATE_TABLE_TEMPLATE = (
 INSERT_OR_REPLACE_TEMPLATE = (
         """INSERT OR REPLACE INTO "{table_name}" ({columns}) VALUES ({values});""")
 
+SELECT_TEMPLATE = (
+        """SELECT {columns} FROM "{table_name}";""")
+
+DELETE_TEMPLATE = (
+        """DELETE FROM "{table_name}" WHERE {id_column} = {id_value};""")
+
 class NoSuchProjectException(Exception):
     def __init__(self, project_id):
         super(NoSuchProjectException, self).__init__(
@@ -41,9 +47,9 @@ class Project(object):
 
     def _tasks(self):
         if self._task_cache is None:
-            self._task_cache = self._asana_client.tasks.find_by_project(
+            self._task_cache = list(self._asana_client.tasks.find_by_project(
                             self._project_id,
-                            fields=",".join(self._required_fields()))
+                            fields=",".join(self._required_fields())))
         return self._task_cache
 
     def table_name(self):
@@ -74,5 +80,39 @@ class Project(object):
                     table_name=self.table_name(),
                     columns=columns,
                     values=values))
+
+    def delete(self, task_id, db_wrapper):
+        id_field = self._id_field()
+        db_wrapper.write(
+                DELETE_TEMPLATE.format(
+                    table_name=self.table_name(),
+                    id_column=id_field.sql_name,
+                    id_value=task_id))
+
+    def synchronize(self, db_wrapper):
+        db_task_ids = self.db_task_ids(db_wrapper)
+        asana_task_ids = self.asana_task_ids(db_wrapper)
+
+        ids_to_remove = db_task_ids.difference(asana_task_ids)
+
+        for task in self._tasks():
+            self.insert_or_replace(task, db_wrapper)
+
+        for id_to_remove in ids_to_remove:
+            self.delete(id_to_remove, db_wrapper)
+
+    def asana_task_ids(self, db_wrapper):
+        return set(task.get("id") for task in self._tasks())
+
+    def _id_field(self):
+        return self._fields[0]  # TODO: make the id field special.
+
+    def db_task_ids(self, db_wrapper):
+        id_field = self._id_field()
+        return set(row[0] for row in db_wrapper.read(
+                SELECT_TEMPLATE.format(
+                    table_name=self.table_name(),
+                    columns=id_field.sql_name)))
+
 
 

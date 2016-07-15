@@ -82,16 +82,9 @@ def arg_parser():
             help="Export the tasks in the project, "
                  "not deleting deleted tasks from the database.")
 
-    """
-    export_parser.add_argument("--include-complete",
-            dest="include_complete",
-            action='store_true',
-            help="Include completed tasks.")
-    export_parser.add_argument("--no-include-complete",
-            dest="include_complete",
-            action='store_false',
-            help="Exclude completed tasks.")
-            """
+    export_parser = subparsers.add_parser(
+            'synchronize',
+            help="Syncrhonize the tasks in the project with the database.")
 
     return parser
 
@@ -131,8 +124,11 @@ def main():
         project.create_table(db_wrapper)
     elif args.command == 'export':
         project.export(db_wrapper)
+    elif args.command == 'synchronize':
+        project.synchronize(db_wrapper)
 
-    db_wrapper.commit()
+    if not args.dry:
+        db_client.commit()
 
 
 if __name__ == '__main__':
