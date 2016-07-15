@@ -41,23 +41,26 @@ def NumHearts():
     return SimpleField("num_hearts", SqlType.INTEGER, default=0)
 
 
-class AssigneeIdField(Field):
-    def __init__(self):
-        super(AssigneeIdField, self).__init__("assignee_id", SqlType.INTEGER)
+class AssigneeField(Field):
+    def __init__(self, workspace):
+        super(AssigneeField, self).__init__("assignee_id", SqlType.INTEGER)
+        self._workspace = workspace
 
     def required_fields(self):
-        return ["assignee"]
+        return ["assignee.id", "assignee.name"]
 
     def get_data_from_task(self, task):
         assignee = task.get("assignee")
         if assignee:
+            self._workspace.ensure_user_exists(assignee)
             return str(assignee.get("id", -1))
         else:
-            return "NULL"
+            return None
 
 
 def AssigneeStatus():
     return SimpleField("assignee_status", SqlType.STRING)
+
 
 class ParentIdField(Field):
     def __init__(self):
@@ -71,10 +74,9 @@ class ParentIdField(Field):
         if parent:
             return str(parent.get("id", -1))
         else:
-            return "NULL"
+            return None
 
-
-def default_fields():
+def default_fields(workspace):
     return [TaskIdPrimaryKeyField(),
             NameField(),
             NotesField(),
@@ -85,7 +87,7 @@ def default_fields():
             DueOnField(),
             DueAtField(),
             NumHearts(),
-            AssigneeIdField(),
+            AssigneeField(workspace),
             AssigneeStatus(),
             ParentIdField(),
             ]

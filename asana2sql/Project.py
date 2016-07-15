@@ -6,7 +6,7 @@ from asana2sql import fields
 from asana2sql import workspace
 
 
-#TODO: Add foriegn key constraints.
+#TODO: parameterize commands.
 
 CREATE_TABLE_TEMPLATE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" ({columns});""")
@@ -72,7 +72,7 @@ class Project(object):
         return self._project_data()["name"]
 
     def add_derived_fields(self):
-        self._fields += fields.default_fields()
+        self._fields += fields.default_fields(self._workspace)
 
     def create_table(self):
         sql = CREATE_TABLE_TEMPLATE.format(
@@ -87,12 +87,14 @@ class Project(object):
 
     def insert_or_replace(self, task):
         columns = ",".join(field.sql_name for field in self._fields)
-        values = ",".join(field.get_data_from_task(task) for field in self._fields)
+        values = ",".join("?" for field in self._fields)
+        params = [field.get_data_from_task(task) for field in self._fields]
         self._db_client.write(
                 INSERT_OR_REPLACE_TEMPLATE.format(
                     table_name=self.table_name(),
                     columns=columns,
-                    values=values))
+                    values=values),
+                *params)
 
     def delete(self, task_id):
         id_field = self._id_field()
@@ -126,6 +128,4 @@ class Project(object):
                 SELECT_TEMPLATE.format(
                     table_name=self.table_name(),
                     columns=id_field.sql_name)))
-
-
 

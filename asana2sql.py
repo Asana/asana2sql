@@ -6,7 +6,7 @@ import requests
 
 from asana2sql.project import Project
 from asana2sql.workspace import Workspace
-from output import DatabaseWrapper
+from asana2sql.db_wrapper import DatabaseWrapper
 from asana import Client, session
 
 def arg_parser():
@@ -27,6 +27,7 @@ def arg_parser():
             help="Adds default columns, e.g. created_at, completed, all custom fields.");
 
     parser.add_argument("--projects_table_name")
+    parser.add_argument("--project_memberships_table_name")
     parser.add_argument("--users_table_name")
     parser.add_argument("--followers_table_name")
     parser.add_argument("--custom_fields_table_name")

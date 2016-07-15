@@ -50,15 +50,10 @@ class SimpleField(Field):
         if data is None:
             data = self._default
 
-        if data is None:
-            return "NULL"
-
-        if self.sql_type in [SqlType.STRING, SqlType.TEXT, SqlType.DATETIME]:
-            return '"{}"'.format(re.sub('"', '\\"', str(data)))
-        elif self.sql_type == SqlType.BOOLEAN:
+        if self.sql_type == SqlType.BOOLEAN:
             return "1" if data else "0"
         else:
-            return str(data)
+            return data
 
     def field_definition_sql(self):
         if (self._primary_key):
