@@ -8,7 +8,7 @@ PRIMARY_KEY_DEFINITION_TEMPLATE = """"{name}" {type} NOT NULL PRIMARY KEY"""
 class SqlType(object):
     STRING = "VARCHAR(1024)"
     TEXT = "TEXT"
-    INTEGER = "BIGINT"
+    INTEGER = "INTEGER"
     DATETIME = "DATETIME"
     DATE = "DATE"
     BOOLEAN = "BOOLEAN"

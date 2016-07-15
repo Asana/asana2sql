@@ -5,6 +5,7 @@ import pyodbc
 import requests
 
 from asana2sql.project import Project
+from asana2sql.workspace import Workspace
 from output import DatabaseWrapper
 from asana import Client, session
 
@@ -18,12 +19,19 @@ def arg_parser():
             help="Asana project ID.")
 
     parser.add_argument('--table_name',
-            help=("Name of the SQL table to use."
+            help=("Name of the SQL table to use for tasks."
                   "If not specified it will be derived from the project name."))
 
     parser.add_argument("--derive_fields",
             action='store_true',
             help="Adds default columns, e.g. created_at, completed, all custom fields.");
+
+    parser.add_argument("--projects_table_name")
+    parser.add_argument("--users_table_name")
+    parser.add_argument("--followers_table_name")
+    parser.add_argument("--custom_fields_table_name")
+    parser.add_argument("--custom_field_enum_values_table_name")
+    parser.add_argument("--custom_field_values_table_name")
 
     # Asana Client options
     asana_args = parser.add_argument_group('Asana Client Options')
@@ -102,8 +110,6 @@ def main():
 
     client = build_asana_client(args)
 
-    project = Project(client, args.project_id, args.table_name, [])
-
     db_client = None
     if args.odbc_string:
         print("Connecting to database.")
@@ -111,15 +117,19 @@ def main():
 
     db_wrapper = DatabaseWrapper(db_client, dump_sql=args.dump_sql, dry=args.dry)
 
+    workspace = Workspace(client, db_wrapper, args)
+    project = Project(client, db_wrapper, args, [])
+
     if args.derive_fields:
         project.add_derived_fields()
 
     if args.command == 'create':
-        project.create_table(db_wrapper)
+        project.create_table()
+        workspace.create_tables()
     elif args.command == 'export':
-        project.export(db_wrapper)
+        project.export()
     elif args.command == 'synchronize':
-        project.synchronize(db_wrapper)
+        project.synchronize()
 
     if not args.dry:
         db_client.commit()
