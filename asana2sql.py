@@ -28,13 +28,9 @@ def arg_parser():
     # Asana Client options
     asana_args = parser.add_argument_group('Asana Client Options')
 
-    auth_args = asana_args.add_mutually_exclusive_group(required=True)
-    auth_args.add_argument(
-            "--api_key",
-            help="Asana API Key (deprecated).")
-
-    auth_args.add_argument(
+    asana_args.add_argument(
             "--access_token",
+            required=True,
             help="Asana Personal Access Token for authentication.")
 
     asana_args.add_argument(
@@ -89,14 +85,12 @@ def arg_parser():
     return parser
 
 def build_asana_client(args):
-    options = {}
+    options = {
+        'session': session.AsanaOAuth2Session(
+            token={'access_token': args.access_token})}
+
     if args.base_url:
         options['base_url'] = args.base_url
-    if args.api_key:
-        options['auth'] = requests.auth.HTTPBasicAuth(args.api_key, '')
-    if args.access_token:
-        options['session'] = session.AsanaOAuth2Session(
-                token={'access_token': args.access_token})
     if args.verify is not None:
         # urllib3.disable_warnings()
         options['verify'] = args.verify
