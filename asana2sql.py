@@ -104,7 +104,18 @@ def build_asana_client(args):
         # urllib3.disable_warnings()
         options['verify'] = args.verify
 
-    return Client(**options);
+    return RequestCountingClient(**options);
+
+class RequestCountingClient(Client):
+    def __init__(self, session=None, auth=None, **options):
+        Client.__init__(self, session=session, auth=auth, **options)
+        self._num_requests = {}
+
+    def request(self, method, path, **options):
+        if not method in self._num_requests:
+            self._num_requests[method] = 0
+        self._num_requests[method] = self._num_requests.get(method) + 1
+        return Client.request(self, method, path, **options)
 
 def main():
     args = arg_parser().parse_args()
@@ -135,6 +146,9 @@ def main():
     if not args.dry:
         db_client.commit()
 
+    print("API Requests: {}".format(client._num_requests))
+    print("DB Commands: reads = {}, writes = {}, executed = {}".format(
+        db_wrapper._num_reads, db_wrapper._num_writes, db_wrapper._num_commands_executed))
 
 if __name__ == '__main__':
     main()

@@ -6,8 +6,6 @@ from asana2sql import fields
 from asana2sql import workspace
 
 
-#TODO: parameterize commands.
-
 CREATE_TABLE_TEMPLATE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" ({columns});""")
 
@@ -20,18 +18,16 @@ SELECT_TEMPLATE = (
 DELETE_TEMPLATE = (
         """DELETE FROM "{table_name}" WHERE {id_column} = ?;""")
 
-class CustomFieldType(object):
-    TEXT = 0
-    NUMBER = 1
-    ENUM = 2
-
 class NoSuchProjectException(Exception):
     def __init__(self, project_id):
         super(NoSuchProjectException, self).__init__(
                 "No project with id {}".format(project_id))
 
 class Project(object):
-    # TODO: Make it all kwargs.
+    """Represents a project on Asana.  The class executes commands to bring the
+    database into sync with the project data.
+    """
+
     def __init__(self, asana_client, db_client, config, fields):
         self._asana_client = asana_client
         self._db_client = db_client
@@ -50,6 +46,7 @@ class Project(object):
             self._add_field(field)
 
     def _project_data(self):
+        """Fetch the project data from Asana and cache it."""
         if self._project_data_cache is None:
             try:
                 self._project_data_cache = (
@@ -64,9 +61,9 @@ class Project(object):
 
     def _tasks(self):
         if self._task_cache is None:
-            self._task_cache = list(self._asana_client.tasks.find_by_project(
-                            self._project_id,
-                            fields=",".join(self._required_fields())))
+            self._task_cache = list(
+                    self._asana_client.tasks.find_by_project(
+                        self._project_id, fields=",".join(self._required_fields())))
         return self._task_cache
 
     def table_name(self):

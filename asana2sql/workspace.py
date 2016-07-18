@@ -96,6 +96,8 @@ class Workspace(object):
         self._asana_client = asana_client
         self._db_client = db_client
         self._config = config
+        self._cache = {}
+        self._custom_fields_written = set()
 
     def projects_table_name(self):
         return self._config.projects_table_name or PROJECTS_TABLE_NAME
@@ -181,6 +183,9 @@ class Workspace(object):
         the custom_field_value parameter, which is true if custom_fields are
         fetched via the task API.
         """
+        if custom_field_value["id"] in self._custom_fields_written:
+            return
+
         self._db_client.write(
                 INSERT_CUSTOM_FIELD.format(
                     table_name=self.custom_fields_table_name()),
@@ -191,6 +196,8 @@ class Workspace(object):
         if custom_field_value["type"] == "enum":
             self.add_custom_field_enum_values(custom_field_value["id"])
 
+        self._custom_fields_written.add(custom_field_value["id"])
+
     def get_custom_field(self, custom_field_id):
         # NB: The python client doesn't support custom fields yet, so we have
         # to fetch manually.
@@ -198,18 +205,28 @@ class Workspace(object):
 
     # Custom field enum values
     def custom_field_enum_values(self, custom_field_id):
-        return [row[0] for row in
-                self._dbclient.read(
-                    SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD.format(
-                        table_name=self.custom_field_enum_values_table_name()),
-                    custom_field_id)]
+        if not "custom_field_enum_values" in self._cache:
+            self._cache["custom_field_enum_values"] = {}
+
+        if not custom_field_id in self._cache["custom_field_enum_values"]:
+            self._cache["custom_field_enum_values"][custom_field_id] = {}
+
+        if not self._cache["custom_field_enum_values"][custom_field_id]:
+            self._cache["custom_field_enum_values"][custom_field_id] = set(
+                row[0] for row in
+                        self._db_client.read(
+                            SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD.format(
+                                table_name=self.custom_field_enum_values_table_name()),
+                            custom_field_id))
+        return self._cache["custom_field_enum_values"][custom_field_id]
 
     def add_custom_field_enum_values(self, custom_field_id):
         custom_field_def = self.get_custom_field(custom_field_id)
 
-        old_ids = custom_field_enum_values(custom_field_id)
-        new_ids = [option["id"]
-                   for option in custom_field_def.get("enum_options", [])]
+        old_ids = self.custom_field_enum_values(custom_field_id)
+        new_ids = set(option["id"]
+                   for option in custom_field_def.get("enum_options", []))
+        stale_ids = old_ids.difference(new_ids)
 
         for enum_option in custom_field_def.get("enum_options", []):
             self._db_client.write(
@@ -220,7 +237,8 @@ class Workspace(object):
                     enum_option["name"],
                     enum_option["enabled"],
                     enum_option["color"])
-        for id in old_ids:
+
+        for id in stale_ids:
             self._db_client.write(
                     DELETE_CUSTOM_FIELD_ENUM_VALUE.format(
                         table_name=self.custom_field_enum_values_table_name()),
