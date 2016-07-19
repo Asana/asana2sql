@@ -61,7 +61,7 @@ CREATE_CUSTOM_FIELD_ENUM_VALUES_TABLE = (
         PRIMARY KEY (custom_field_id, id));
         """)
 SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD = (
-        """SELECT id FROM {table_name} WHERE custom_field_id = ?;""")
+        """SELECT * FROM {table_name} WHERE custom_field_id = ?;""")
 INSERT_CUSTOM_FIELD_ENUM_VALUE = (
         """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?, ?, ?, ?);""")
 DELETE_CUSTOM_FIELD_ENUM_VALUE = (
@@ -77,9 +77,8 @@ CREATE_CUSTOM_FIELD_VALUES_TABLE = (
         enum_value INTEGER,
         PRIMARY KEY (task_id, custom_field_id));
         """)
-
 SELECT_CUSTOM_FIELD_VALUES_FOR_TASK = (
-        "SELECT custom_field_id FROM {table_name} WHERE task_id = ?;")
+        "SELECT * FROM {table_name} WHERE task_id = ?;")
 INSERT_CUSTOM_FIELD_VALUE = (
         "INSERT OR REPLACE INTO {table_name} VALUES (?, ?, ?, ?, ?);")
 DELETE_CUSTOM_FIELD_VALUE = (
@@ -212,9 +211,8 @@ class Workspace(object):
             self._cache["custom_field_enum_values"][custom_field_id] = {}
 
         if not self._cache["custom_field_enum_values"][custom_field_id]:
-            self._cache["custom_field_enum_values"][custom_field_id] = set(
-                row[0] for row in
-                        self._db_client.read(
+            self._cache["custom_field_enum_values"][custom_field_id] = (
+                    self._db_client.read(
                             SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD.format(
                                 table_name=self.custom_field_enum_values_table_name()),
                             custom_field_id))
@@ -222,13 +220,20 @@ class Workspace(object):
 
     def add_custom_field_enum_values(self, custom_field_id):
         custom_field_def = self.get_custom_field(custom_field_id)
+        new_enum_options = custom_field_def.get("enum_options", [])
 
-        old_ids = self.custom_field_enum_values(custom_field_id)
-        new_ids = set(option["id"]
-                   for option in custom_field_def.get("enum_options", []))
-        stale_ids = old_ids.difference(new_ids)
+        old_enum_options = {row.id: row
+                for row in self.custom_field_enum_values(custom_field_id)}
 
-        for enum_option in custom_field_def.get("enum_options", []):
+        for enum_option in new_enum_options:
+            if enum_option["id"] in old_enum_options:
+                old_option = old_enum_options[enum_option["id"]]
+                del(old_enum_options[enum_option["id"]])
+                if (old_option.name == enum_option["name"] and
+                    old_option.enabled == enum_option["enabled"] and
+                    old_option.color == enum_option["color"]):
+                        continue;
+
             self._db_client.write(
                     INSERT_CUSTOM_FIELD_ENUM_VALUE.format(
                         table_name=self.custom_field_enum_values_table_name()),
@@ -238,7 +243,7 @@ class Workspace(object):
                     enum_option["enabled"],
                     enum_option["color"])
 
-        for id in stale_ids:
+        for id in old_enum_options.iterkeys():
             self._db_client.write(
                     DELETE_CUSTOM_FIELD_ENUM_VALUE.format(
                         table_name=self.custom_field_enum_values_table_name()),
@@ -246,11 +251,10 @@ class Workspace(object):
 
     # Custom field values
     def task_custom_field_values(self, task_id):
-        return [row[0] for row in
-                self._db_client.read(
+        return self._db_client.read(
                     SELECT_CUSTOM_FIELD_VALUES_FOR_TASK.format(
                         table_name=self.custom_field_values_table_name()),
-                    task_id)]
+                    task_id)
 
     def add_custom_field_value(self, task_id, custom_field):
         self.add_custom_field(custom_field)

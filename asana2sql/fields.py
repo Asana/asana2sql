@@ -85,16 +85,15 @@ class ProjectsField(Field):
         return ["id", "projects.id", "projects.name"]
 
     def get_data_from_task(self, task):
-        projects = task.get("projects", [])
+        projects = {project["id"]: project for project in task.get("projects", [])}
 
-        new_project_ids = set(project["id"] for project in projects)
+        new_project_ids = set(projects.keys())
         old_project_ids = set(self._workspace.task_memberships(task["id"]))
-        stale_project_ids = old_project_ids.difference(new_project_ids)
 
-        for project in projects:
+        for project in new_project_ids.difference(old_project_ids):
             self._workspace.add_task_to_project(task["id"], project);
 
-        for project_id in stale_project_ids:
+        for project_id in old_project_ids.difference(new_project_ids):
             self._workspace.remove_task_from_project(task["id"], project_id)
 
 
@@ -111,19 +110,30 @@ class CustomFields(Field):
         return ["id", "custom_fields"]
 
     def get_data_from_task(self, task):
-        custom_fields = task.get("custom_fields", [])
+        custom_fields = {field["id"]: field
+                for field in task.get("custom_fields", [])}
+        old_fields = {row.custom_field_id: row
+                for row in self._workspace.task_custom_field_values(task["id"])}
 
-        new_field_ids = set(custom_field["id"]
-                            for custom_field in custom_fields)
-        old_field_ids = set(self._workspace.task_custom_field_values(task["id"]))
-        stale_field_ids = old_field_ids.difference(new_field_ids)
+        for field_id, custom_field in custom_fields.iteritems():
+            if field_id in old_fields:
+                old_field = old_fields[field_id]
+                del(old_fields[field_id])
+                if (custom_field["type"] == "text" and
+                    custom_field.get("text_value") == old_field.text_value):
+                        continue
+                if (custom_field["type"] == "number" and
+                    custom_field.get("number_value") == old_field.number_value):
+                        continue
+                if (custom_field["type"] == "enum" and
+                    custom_field.get("enum_value") == old_field.enum_value):
+                        continue
 
-        for custom_field in custom_fields:
             self._workspace.add_custom_field_value(task["id"], custom_field)
 
-        for field_id in stale_field_ids:
+        for field_id in old_fields:
             self._workspace.remove_custom_field_value(
-                    task["id"], custom_field_id)
+                    task["id"], field_id)
 
 
 def default_fields(workspace):

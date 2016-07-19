@@ -54,6 +54,12 @@ def arg_parser():
             action="store_false",
             help="Turn off HTTPS verification.")
 
+    asana_args.add_argument(
+            "--dump_api",
+            action="store_true",
+            default=False,
+            help="Dump API requests to STDOUT")
+
     # DB options
     db_args = parser.add_argument_group('Database Options')
 
@@ -103,15 +109,20 @@ def build_asana_client(args):
     if args.verify is not None:
         # urllib3.disable_warnings()
         options['verify'] = args.verify
+    if args.dump_api:
+        options['dump_api'] = args.dump_api
 
     return RequestCountingClient(**options);
 
 class RequestCountingClient(Client):
-    def __init__(self, session=None, auth=None, **options):
+    def __init__(self, dump_api=False, session=None, auth=None, **options):
         Client.__init__(self, session=session, auth=auth, **options)
+        self._dump_api = dump_api
         self._num_requests = {}
 
     def request(self, method, path, **options):
+        if self._dump_api:
+            print("{}: {}".format(method, path))
         if not method in self._num_requests:
             self._num_requests[method] = 0
         self._num_requests[method] = self._num_requests.get(method) + 1

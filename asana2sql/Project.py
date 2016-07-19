@@ -103,6 +103,7 @@ class Project(object):
                     columns=columns,
                     values=values),
                 *params)
+
         for field in self._indirect_fields:
             field.get_data_from_task(task)
 
