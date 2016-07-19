@@ -53,7 +53,7 @@ class AssigneeField(Field):
         assignee = task.get("assignee")
         if assignee:
             self._workspace.ensure_user_exists(assignee)
-            return str(assignee.get("id", -1))
+            return assignee.get("id", -1)
         else:
             return None
 
@@ -72,7 +72,7 @@ class ParentIdField(Field):
     def get_data_from_task(self, task):
         parent = task.get("parent")
         if parent:
-            return str(parent.get("id", -1))
+            return parent.get("id", -1)
         else:
             return None
 
@@ -90,8 +90,8 @@ class ProjectsField(Field):
         new_project_ids = set(projects.keys())
         old_project_ids = set(self._workspace.task_memberships(task["id"]))
 
-        for project in new_project_ids.difference(old_project_ids):
-            self._workspace.add_task_to_project(task["id"], project);
+        for project_id in new_project_ids.difference(old_project_ids):
+            self._workspace.add_task_to_project(task["id"], projects[project_id]);
 
         for project_id in old_project_ids.difference(new_project_ids):
             self._workspace.remove_task_from_project(task["id"], project_id)

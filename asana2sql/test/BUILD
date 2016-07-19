@@ -8,6 +8,15 @@ py_test(
 )
 
 py_test(
+    name = "fields_test",
+    srcs = ["fields_test.py"],
+    deps = [
+        ":fixtures",
+        "//asana2sql",
+    ],
+)
+
+py_test(
     name = "project_test",
     srcs = ["project_test.py"],
     deps = [
