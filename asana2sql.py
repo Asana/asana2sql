@@ -125,6 +125,10 @@ class RequestCountingClient(Client):
         self._dump_api = dump_api
         self._num_requests = 0
 
+    @property
+    def num_requests(self):
+        return self._num_requests
+
     def request(self, method, path, **options):
         if self._dump_api:
             print("{}: {}".format(method, path))
@@ -159,9 +163,9 @@ def main():
         db_client.commit()
 
     if args.dump_perf:
-        print("API Requests: {}".format(client._num_requests))
+        print("API Requests: {}".format(client.num_requests))
         print("DB Commands: reads = {}, writes = {}, executed = {}".format(
-            db_wrapper._num_reads, db_wrapper._num_writes, db_wrapper._num_commands_executed))
+            db_wrapper.num_reads, db_wrapper.num_writes, db_wrapper.num_commands_executed))
 
 if __name__ == '__main__':
     main()
