@@ -3,7 +3,6 @@ import mock
 
 from asana2sql.db_wrapper import DatabaseWrapper
 
-
 TEST_SQL = "Test SQL statement"
 PARAM1 = "Param 1"
 PARAM2 = "Param 2"

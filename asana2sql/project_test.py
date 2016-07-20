@@ -3,7 +3,7 @@ import mock
 
 from asana2sql.project import Project
 from asana2sql.field import Field, SimpleField, SqlType
-from asana2sql import fixtures
+from asana2sql import test_fixtures as fixtures
 
 
 class ProjectTestCase(unittest.TestCase):
