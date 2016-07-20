@@ -4,6 +4,7 @@ import argparse
 import pyodbc
 import requests
 
+from asana2sql.fields import default_fields
 from asana2sql.project import Project
 from asana2sql.workspace import Workspace
 from asana2sql.db_wrapper import DatabaseWrapper
@@ -21,10 +22,6 @@ def arg_parser():
     parser.add_argument('--table_name',
             help=("Name of the SQL table to use for tasks."
                   "If not specified it will be derived from the project name."))
-
-    parser.add_argument("--derive_fields",
-            action='store_true',
-            help="Adds default columns, e.g. created_at, completed, all custom fields.");
 
     parser.add_argument("--projects_table_name")
     parser.add_argument("--project_memberships_table_name")
@@ -141,10 +138,8 @@ def main():
     db_wrapper = DatabaseWrapper(db_client, dump_sql=args.dump_sql, dry=args.dry)
 
     workspace = Workspace(client, db_wrapper, args)
-    project = Project(client, db_wrapper, args, [])
-
-    if args.derive_fields:
-        project.add_derived_fields()
+    project = Project(
+            client, db_wrapper, workspace, args, default_fields(workspace))
 
     if args.command == 'create':
         project.create_table()

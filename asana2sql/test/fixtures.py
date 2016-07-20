@@ -1,3 +1,4 @@
+import mock
 
 
 def project(id=1,
@@ -39,5 +40,9 @@ def task(id=2,
             "tags": tags,
             "custom_fields": custom_fields}
 
-
-
+def row(**kwargs):
+    row = mock.MagicMock()
+    row.__getitem__.side_effect = lambda i: kwargs.values()[i]
+    for k, v in kwargs.iteritems():
+        setattr(row, k, v)
+    return row

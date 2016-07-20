@@ -28,9 +28,10 @@ class Project(object):
     database into sync with the project data.
     """
 
-    def __init__(self, asana_client, db_client, config, fields):
+    def __init__(self, asana_client, db_client, workspace, config, fields):
         self._asana_client = asana_client
         self._db_client = db_client
+        self._workspace = workspace
         self._config = config
         self._direct_fields = []
         self._indirect_fields = []
@@ -40,7 +41,6 @@ class Project(object):
 
         self._project_data_cache = None
         self._task_cache = None
-        self._workspace = workspace.Workspace(asana_client, db_client, config)
 
         for field in fields:
             self._add_field(field)
