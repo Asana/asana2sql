@@ -14,14 +14,22 @@ def arg_parser():
     parser = argparse.ArgumentParser()
 
     # Global options
-    parser.add_argument('--project_id',
+    parser.add_argument(
+            '--project_id',
             type=int,
             required=True,
             help="Asana project ID.")
 
-    parser.add_argument('--table_name',
+    parser.add_argument(
+            '--table_name',
             help=("Name of the SQL table to use for tasks."
                   "If not specified it will be derived from the project name."))
+
+    parser.add_argument(
+            '--dump_perf',
+            action="store_true",
+            default=False,
+            help="Print performance information on completion.")
 
     parser.add_argument("--projects_table_name")
     parser.add_argument("--project_memberships_table_name")
@@ -115,14 +123,12 @@ class RequestCountingClient(Client):
     def __init__(self, dump_api=False, session=None, auth=None, **options):
         Client.__init__(self, session=session, auth=auth, **options)
         self._dump_api = dump_api
-        self._num_requests = {}
+        self._num_requests = 0
 
     def request(self, method, path, **options):
         if self._dump_api:
             print("{}: {}".format(method, path))
-        if not method in self._num_requests:
-            self._num_requests[method] = 0
-        self._num_requests[method] = self._num_requests.get(method) + 1
+        self._num_requests += 1
         return Client.request(self, method, path, **options)
 
 def main():
@@ -152,9 +158,10 @@ def main():
     if not args.dry:
         db_client.commit()
 
-    print("API Requests: {}".format(client._num_requests))
-    print("DB Commands: reads = {}, writes = {}, executed = {}".format(
-        db_wrapper._num_reads, db_wrapper._num_writes, db_wrapper._num_commands_executed))
+    if args.dump_perf:
+        print("API Requests: {}".format(client._num_requests))
+        print("DB Commands: reads = {}, writes = {}, executed = {}".format(
+            db_wrapper._num_reads, db_wrapper._num_writes, db_wrapper._num_commands_executed))
 
 if __name__ == '__main__':
     main()

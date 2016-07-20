@@ -72,10 +72,6 @@ class Project(object):
     def project_name(self):
         return self._project_data()["name"]
 
-    def add_derived_fields(self):
-        for field in fields.default_fields(self._workspace):
-            self._add_field(field)
-
     def _add_field(self, field):
         if field.sql_name:
             self._direct_fields.append(field)
