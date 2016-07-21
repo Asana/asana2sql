@@ -2,13 +2,13 @@ import mock
 
 
 def project(id=1,
-            name="Test Project",
-            notes="",
-            custom_fields=None):
+            name="Test Project"):
     return {"id": id,
-            "name": name,
-            "notes": notes,
-            "custom_fields": custom_fields or []}
+            "name": name}
+
+def user(id=1, name="Test User"):
+    return {"id": id,
+            "name": name}
 
 def task(id=2,
          name="Test Task",
@@ -42,7 +42,10 @@ def task(id=2,
 
 def row(**kwargs):
     row = mock.MagicMock()
+    column_definitions = []
     row.__getitem__.side_effect = lambda i: kwargs.values()[i]
     for k, v in kwargs.iteritems():
+        column_definitions.append((k, None, None, None, None, None, None))
         setattr(row, k, v)
+    row.cursor_description = column_definitions
     return row

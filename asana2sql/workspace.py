@@ -1,11 +1,14 @@
 import util
 
+from asana2sql.cache import Cache
+
 PROJECTS_TABLE_NAME = "projects"
 CREATE_PROJECTS_TABLE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" (
         id INTEGER NOT NULL PRIMARY KEY,
         name VARCHAR(1024));
         """)
+SELECT_PROJECTS = """SELECT * FROM "{table_name}";"""
 INSERT_PROJECT = (
         """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
 
@@ -29,6 +32,7 @@ CREATE_USERS_TABLE = (
         id INTEGER NOT NULL PRIMARY KEY,
         name VARCHAR(1024));
         """)
+SELECT_USERS = 'SELECT * FROM "{table_name}";';
 INSERT_USER = (
         """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
 
@@ -60,6 +64,7 @@ CREATE_CUSTOM_FIELD_ENUM_VALUES_TABLE = (
         color VARCHAR(64) NOT NULL,
         PRIMARY KEY (custom_field_id, id));
         """)
+SELECT_CUSTOM_FIELD_ENUM_VALUES = """SELECT * FROM {table_name};"""
 SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD = (
         """SELECT * FROM {table_name} WHERE custom_field_id = ?;""")
 INSERT_CUSTOM_FIELD_ENUM_VALUE = (
@@ -97,6 +102,21 @@ class Workspace(object):
         self._config = config
         self._cache = {}
         self._custom_fields_written = set()
+
+        self.projects = Cache(
+                self._fetch_all_fn(SELECT_PROJECTS, self.projects_table_name()),
+                self._insert_fn(INSERT_PROJECT, self.projects_table_name(),
+                    ["id", "name"]))
+        self.users = Cache(
+                self._fetch_all_fn(SELECT_USERS, self.users_table_name()),
+                self._insert_fn(INSERT_USER, self.users_table_name(),
+                    ["id", "name"]))
+        self.custom_field_enum_values = Cache(
+                self._fetch_all_fn(SELECT_CUSTOM_FIELD_ENUM_VALUES,
+                    self.custom_field_enum_values_table_name()),
+                self._insert_fn(INSERT_CUSTOM_FIELD_ENUM_VALUE,
+                    self.custom_field_enum_values_table_name(),
+                    ["custom_field_id", "id", "name", "enabled", "color"]))
 
     def projects_table_name(self):
         return self._config.projects_table_name or PROJECTS_TABLE_NAME
@@ -142,17 +162,19 @@ class Workspace(object):
                 CREATE_CUSTOM_FIELD_VALUES_TABLE.format(
                     table_name=self.custom_field_values_table_name()))
 
+    def _fetch_all_fn(self, SQL, table_name):
+        return lambda: self._db_client.read(SQL)
+
+    def _insert_fn(self, SQL, table_name, column_keys):
+        return lambda obj: self._db_client.write(
+                SQL.format(table_name=table_name),
+                *[obj[key] for key in column_keys])
+
     def add_user(self, user):
-        self._db_client.write(
-                INSERT_USER.format(
-                    table_name=self.users_table_name()),
-                (user["id"], user["name"]))
+        self.users.add(user)
 
     def add_project(self, project):
-        self._db_client.write(
-                INSERT_PROJECT.format(
-                    table_name=self.projects_table_name()),
-                (project["id"], project["name"]))
+        self.projects.add(project);
 
     # Task Membership
     def task_memberships(self, task_id):
@@ -203,27 +225,12 @@ class Workspace(object):
         return self._asana_client.get("/custom_fields/{}".format(custom_field_id), "")
 
     # Custom field enum values
-    def custom_field_enum_values(self, custom_field_id):
-        if not "custom_field_enum_values" in self._cache:
-            self._cache["custom_field_enum_values"] = {}
-
-        if not custom_field_id in self._cache["custom_field_enum_values"]:
-            self._cache["custom_field_enum_values"][custom_field_id] = {}
-
-        if not self._cache["custom_field_enum_values"][custom_field_id]:
-            self._cache["custom_field_enum_values"][custom_field_id] = (
-                    self._db_client.read(
-                            SELECT_CUSTOM_FIELD_ENUM_VALUES_FOR_CUSTOM_FIELD.format(
-                                table_name=self.custom_field_enum_values_table_name()),
-                            custom_field_id))
-        return self._cache["custom_field_enum_values"][custom_field_id]
-
     def add_custom_field_enum_values(self, custom_field_id):
         custom_field_def = self.get_custom_field(custom_field_id)
         new_enum_options = custom_field_def.get("enum_options", [])
 
         old_enum_options = {row.id: row
-                for row in self.custom_field_enum_values(custom_field_id)}
+                for row in self.custom_field_enum_values.get(custom_field_id)}
 
         for enum_option in new_enum_options:
             if enum_option["id"] in old_enum_options:
@@ -275,3 +282,4 @@ class Workspace(object):
                     table_name=self.custom_field_values_table_name()),
                 task_id,
                 custom_field_id)
+

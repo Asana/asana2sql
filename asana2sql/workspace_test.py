@@ -84,5 +84,72 @@ class WorkspaceTestCase(unittest.TestCase):
                     table_name=workspace.CUSTOM_FIELD_VALUES_TABLE_NAME)),
         ], any_order=True)
 
+    def test_add_new_user(self):
+        self.db_client.read.return_value = [fixtures.row(id=1, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_user(fixtures.user(id=2, name="bar"))
+
+        self.db_client.write.assert_called_once_with(
+                workspace.INSERT_USER.format(
+                    table_name=workspace.USERS_TABLE_NAME),
+                2, "bar")
+
+    def test_add_same_user(self):
+        self.db_client.read.return_value = [fixtures.row(id=1, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_user(fixtures.user(id=1, name="foo"))
+
+        self.db_client.write.assert_not_called()
+
+    def test_add_existing_user(self):
+        self.db_client.read.return_value = [fixtures.row(id=1, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_user(fixtures.user(id=1, name="bar"))
+
+        self.db_client.write.assert_called_once_with(
+                workspace.INSERT_USER.format(
+                    table_name=workspace.USERS_TABLE_NAME),
+                1, "bar")
+
+    def test_add_new_project(self):
+        self.db_client.read.return_value = [fixtures.row(id=1, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_project(fixtures.project(id=2, name="bar"))
+
+        self.db_client.write.assert_called_once_with(
+                workspace.INSERT_PROJECT.format(
+                    table_name=workspace.PROJECTS_TABLE_NAME),
+                2, "bar")
+
+    def test_add_same_project(self):
+        self.db_client.read.return_value = [fixtures.row(id=1, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_project(fixtures.project(id=1, name="foo"))
+
+        self.db_client.write.assert_not_called()
+
+    def test_add_existing_project(self):
+        self.db_client.read.return_value = [fixtures.row(id=1, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_project(fixtures.project(id=1, name="bar"))
+
+        self.db_client.write.assert_called_once_with(
+                workspace.INSERT_PROJECT.format(
+                    table_name=workspace.PROJECTS_TABLE_NAME),
+                1, "bar")
+
+
 if __name__ == '__main__':
     unittest.main()
