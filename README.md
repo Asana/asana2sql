@@ -2,31 +2,36 @@
 
 asana2sql is a utility for exporting Asana data to SQL databases.  It assumes a
 one-to-one mapping between tasks in Asana and rows in the database.  It can
-handle creating tables, exporting data, synchronizing data, mapping data
+handle creating tables, exporting data, synchronizing data, mapping to various
 database types and more.
 
-asana2sql uses PyODBC for database connectivity, so will work with any database
-for which you have ODBC configured.  It uses very generic SQL commands to
-provide maximum compatibility.
+The asana2sql script uses [PyODBC](https://github.com/mkleehammer/pyodbc) for
+database connectivity, so will work with any database for which you have ODBC
+configured.  It uses very generic SQL commands to provide maximum
+compatibility.  As a library it is compatible with any
+[PEP 249 (DB API 2.0)](https://www.python.org/dev/peps/pep-0249/) object.
 
-It is also very configurable.  While the project includes a script that uses a
-default set of fields, new fields can be easily written to support custom
-database types or compute data from one or more fields.
+It is very configurable.  While the project includes a script that uses a
+default set of fields that should cover most needs, new fields can be easily
+written to support custom database types or compute data from one or more fields.
 
-## Basic Usage
+## The asana2sql Script
+
+### Basic Usage
 
 asana2sql comes out of the box with a script that will cover most use-cases.
-Only a few options are truly required.
 
 In the following examples assume that:
 
 * Your database is an SQLite database and your ODBC driver is registered as
   `SQLite3`.
 * You have an Asana API access token of `0/123456789abcdef`.
-* The ID of your project is `1234567890`.
+* The ID of your project is `1234567890` and it's name is `Project Name`.
 
 Most options are self-explanatory and limited help can be found by passing
 either the `-h` or `--help` option.
+
+The only required options are the `api-token` and `command`.
 
 ### Creating Tables
 
@@ -53,7 +58,7 @@ This will create the following tables:
 * `custom_field_values` - A join-table between tasks and custom fields with
   the values of those fields.
 
-### Exporting Data
+### Exporting or Synchronizing Data
 
 Data can be exported in a one-way dump of data using the `export` or
 `synchronize` commands.  The difference between these two commands is that
@@ -66,7 +71,7 @@ asana2sql.py --access_token 0/123456789abcdef --project_id 1234567890 \
     --odbc_string 'DRIVER={SQLite3};DATABASE=test.sqlite;BigInt=yes' synchronize
 ```
 
-## Advanced Usage
+## As a Library
 
 ### Defining fields
 
@@ -89,6 +94,6 @@ that the first field is assumed to be the unique key, most likely the task ID.
 ### Denormalized data
 
 If your application requires the data be denormalized, this can be easily
-achieved by writing custom fields.  For example, you could write a field that
-stores the name of a custom-field enum value directly in the row instead of
-joining through the `custom_field_values` table.
+achieved by writing custom field definitions.  For example, you could write a
+field that stores the name of a custom-field enum value directly in the row
+instead of joining through the `custom_field_values` table.
