@@ -15,6 +15,22 @@ It is very configurable.  While the project includes a script that uses a
 default set of fields that should cover most needs, new fields can be easily
 written to support custom database types or compute data from one or more fields.
 
+## Prerequisites
+
+asana2sql uses [PyODBC](https://github.com/mkleehammer/pyodbc) for database
+connectivity in order to maximize portabitlity across databases. To get started
+with asana2sql, you may want to use SQLite as a testing database. The steps to
+getting up and running on, for example, MacOS X are:
+
+* Install an ODBC driver, e.g. `brew install unixodbc sqliteodbc` (more info: [unixODBC
+  homepage](http://www.unixodbc.org/)
+* Install prerequisite Python modules: `pip install pyodbc asana`
+* Setup odbc to work with SQLite, as in the [SQLiteodbc documentation](http://www.ch-werner.de/sqliteodbc/html/index.html)
+  (Note: you can find the directory for your odbcinst.ini file by running
+  `odbc_config --odbcinstini`)
+
+This should be enough to get up and running with asana2sql as described below.
+
 ## The asana2sql Script
 
 ### Basic Usage
@@ -26,12 +42,12 @@ In the following examples assume that:
 * Your database is an SQLite database and your ODBC driver is registered as
   `SQLite3`.
 * You have an Asana API access token of `0/123456789abcdef`.
-* The ID of your project is `1234567890` and it's name is `Project Name`.
+* The ID of your project is `1234567890` and its name is `Project Name`.
 
 Most options are self-explanatory and limited help can be found by passing
 either the `-h` or `--help` option.
 
-The only required options are the `api-token` and `command`.
+The only required options are `api-token` and `command`.
 
 ### Creating Tables
 
@@ -76,7 +92,8 @@ asana2sql.py --access_token 0/123456789abcdef --project_id 1234567890 \
 ### Defining fields
 
 A field definition maps to at most one column in the tasks table.  If you need
-multiple columns you will need to implement one field per column.
+multiple columns for a single "logical" field, you will need to implement one
+field per column.
 
 Each field needs to provide three things:
 
@@ -94,6 +111,18 @@ that the first field is assumed to be the unique key, most likely the task ID.
 ### Denormalized data
 
 If your application requires the data be denormalized, this can be easily
-achieved by writing custom field definitions.  For example, you could write a
-field that stores the name of a custom-field enum value directly in the row
-instead of joining through the `custom_field_values` table.
+achieved by writing purpose-built field definitions.  For example, you could
+write a field that stores the name of an Asana-custom-field of type `enum`'s
+value directly in the row instead of joining through the `custom_field_values`
+table, which is normally where Asana's custom fields will be placed. In this
+way, it's possible to make Asana's custom fields show up in the SQL database
+directly on each row.
+
+## Building and Testing
+
+asana2sql uses [Bazel](http://www.bazel.io/) for building and testing. To run
+all tests, use the command `bazel test //asana2sql:all`; individual tests can be
+run based on their target name as specified in the [BUILD
+file](https://github.com/Asana/asana2sql/blob/master/asana2sql/BUILD). For more
+information on how to use Bazel, reference the [Bazel documentation
+site](http://www.bazel.io/docs/install.html)
