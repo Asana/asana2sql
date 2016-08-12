@@ -3,13 +3,14 @@ import mock
 
 from asana2sql.workspace import Workspace
 from asana2sql import workspace
+from asana2sql import db_wrapper
 from asana2sql import test_fixtures as fixtures
 
 
 class WorkspaceTestCase(unittest.TestCase):
     def setUp(self):
         self.client = mock.Mock()
-        self.db_client = mock.Mock()
+        self.db_client = mock.Mock(spec=db_wrapper.DatabaseWrapper)
         self.config = mock.Mock()
 
         self.config.projects_table_name = None

@@ -52,7 +52,7 @@ class AssigneeField(Field):
     def get_data_from_task(self, task):
         assignee = task.get("assignee")
         if assignee:
-            self._workspace.ensure_user_exists(assignee)
+            self._workspace.add_user(assignee)
             return assignee.get("id", -1)
         else:
             return None

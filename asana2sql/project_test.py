@@ -4,16 +4,18 @@ import mock
 from asana2sql.project import Project
 from asana2sql.field import Field, SimpleField, SqlType
 from asana2sql import test_fixtures as fixtures
+from asana2sql import db_wrapper
+from asana2sql import workspace
 
 
 class ProjectTestCase(unittest.TestCase):
     def setUp(self):
         self.asana_client = mock.Mock()
-        self.db_client = mock.Mock()
+        self.db_client = mock.Mock(db_wrapper.DatabaseWrapper)
         self.config = mock.Mock()
         self.config.project_id = 1234
         self.config.table_name = "test_table"
-        self.workspace = mock.Mock()
+        self.workspace = mock.Mock(workspace.Workspace)
 
     def test_derived_table_name(self):
         proj = fixtures.project(id=1234, name="Test Table")

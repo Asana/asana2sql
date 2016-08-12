@@ -2,11 +2,12 @@ import unittest
 import mock
 
 from asana2sql import fields
+from asana2sql import workspace
 
 
 class AssigneeFieldTestCase(unittest.TestCase):
     def test_assignee_field(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
 
         user = {"id": 123, "name": "user"}
 
@@ -17,7 +18,7 @@ class AssigneeFieldTestCase(unittest.TestCase):
                 field.get_data_from_task({"assignee": user}),
                 123)
 
-        ws.ensure_user_exists.assert_called_once_with(user)
+        ws.add_user.assert_called_once_with(user)
 
 class ParentIdFieldTestCase(unittest.TestCase):
     def test_parent_id_field(self):
@@ -30,7 +31,7 @@ class ParentIdFieldTestCase(unittest.TestCase):
 
 class ProjectsFieldTestCase(unittest.TestCase):
     def test_no_projects(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
         ws.task_memberships.return_value = []
 
         field = fields.ProjectsField(ws)
@@ -40,7 +41,7 @@ class ProjectsFieldTestCase(unittest.TestCase):
         ws.task_memberships.assert_called_once_with(123)
 
     def test_same_projects(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
         ws.task_memberships.return_value = [1, 2, 3]
 
         field = fields.ProjectsField(ws)
@@ -58,7 +59,7 @@ class ProjectsFieldTestCase(unittest.TestCase):
         ws.remove_task_from_project.assert_not_called()
 
     def test_different_projects(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
         ws.task_memberships.return_value = [1, 2, 3]
 
         field = fields.ProjectsField(ws)
@@ -89,7 +90,7 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
         return row
 
     def test_no_fields(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
         ws.task_custom_field_values.return_value = []
 
         field = fields.CustomFields(ws)
@@ -100,7 +101,7 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
         ws.remove_custom_field_value.assert_not_called()
 
     def test_same_fields(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
         ws.task_custom_field_values.return_value = [
             self.mock_custom_field_value(1, "Field 1", text_value="foo"),
             self.mock_custom_field_value(2, "Field 2", number_value=42),
@@ -120,7 +121,7 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
         ws.remove_custom_field_value.assert_not_called()
 
     def test_different_fields(self):
-        ws = mock.Mock()
+        ws = mock.Mock(spec=workspace.Workspace)
         ws.task_custom_field_values.return_value = [
             self.mock_custom_field_value(1, "Field 1", text_value="to be removed"),
             self.mock_custom_field_value(2, "Field 2", number_value=42),
