@@ -163,7 +163,7 @@ class Workspace(object):
                     table_name=self.custom_field_values_table_name()))
 
     def _fetch_all_fn(self, SQL, table_name):
-        return lambda: self._db_client.read(SQL)
+        return lambda: self._db_client.read(SQL.format(table_name=table_name))
 
     def _insert_fn(self, SQL, table_name, column_keys):
         return lambda obj: self._db_client.write(
@@ -230,7 +230,7 @@ class Workspace(object):
         new_enum_options = custom_field_def.get("enum_options", [])
 
         old_enum_options = {row.id: row
-                for row in self.custom_field_enum_values.get(custom_field_id)}
+                for row in self.custom_field_enum_values.get(custom_field_id) or []}
 
         for enum_option in new_enum_options:
             if enum_option["id"] in old_enum_options:
