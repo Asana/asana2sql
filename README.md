@@ -18,7 +18,7 @@ written to support custom database types or compute data from one or more fields
 ## Prerequisites
 
 asana2sql uses [PyODBC](https://github.com/mkleehammer/pyodbc) for database
-connectivity in order to maximize portabitlity across databases. To get started
+connectivity in order to maximize portability across databases. To get started
 with asana2sql, you may want to use SQLite as a testing database. The steps to
 getting up and running on, for example, MacOS X are:
 
