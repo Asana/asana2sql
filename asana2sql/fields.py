@@ -136,6 +136,28 @@ class CustomFields(Field):
                     task["id"], field_id)
 
 
+class FollowersField(Field):
+    def __init__(self, workspace):
+        super(FollowersField, self).__init__(None, None)
+        self._workspace = workspace
+
+    def required_fields(self):
+        return ["id", "followers.id", "followers.name"]
+
+    def get_data_from_task(self, task):
+        follower_ids = {follower["id"]: follower for follower in task.get("followers", [])}
+        old_follower_ids = self._workspace.get_followers(task["id"])
+
+        for follower_id, follower in follower_ids.iteritems():
+            if follower_id in old_follower_ids:
+                old_follower_ids.remove(follower_id)
+            else:
+                self._workspace.add_follower(task["id"], follower)
+
+        for follower_id in old_follower_ids:
+            self._workspace.remove_follower(task["id"], follower_id)
+
+
 def default_fields(workspace):
     return [TaskIdPrimaryKeyField(),
             NameField(),
@@ -147,10 +169,11 @@ def default_fields(workspace):
             DueOnField(),
             DueAtField(),
             NumHearts(),
+            ParentIdField(),
             AssigneeField(workspace),
             AssigneeStatus(),
             ProjectsField(workspace),
-            ParentIdField(),
+            FollowersField(workspace),
             CustomFields(workspace),
             ]
 

@@ -151,6 +151,18 @@ class WorkspaceTestCase(unittest.TestCase):
                     table_name=workspace.PROJECTS_TABLE_NAME),
                 1, "bar")
 
+    def test_add_follower(self):
+        self.db_client.read.return_value = [fixtures.row(id=2, name="foo")]
+
+        ws = Workspace(self.client, self.db_client, self.config)
+
+        ws.add_follower(1, fixtures.user(id=2, name="foo"))
+
+        self.db_client.write.assert_called_once_with(
+                        workspace.INSERT_FOLLOWER.format(
+                            table_name=workspace.FOLLOWERS_TABLE_NAME),
+                        (1, 2))
+
 
 if __name__ == '__main__':
     unittest.main()
