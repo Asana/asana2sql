@@ -20,6 +20,7 @@ class AssigneeFieldTestCase(unittest.TestCase):
 
         ws.add_user.assert_called_once_with(user)
 
+
 class ParentIdFieldTestCase(unittest.TestCase):
     def test_parent_id_field(self):
         field = fields.ParentIdField()
@@ -28,6 +29,7 @@ class ParentIdFieldTestCase(unittest.TestCase):
         self.assertEqual(
                 field.get_data_from_task({"parent": {"id": 123, "name": "task"}}),
                 123)
+
 
 class ProjectsFieldTestCase(unittest.TestCase):
     def test_no_projects(self):
@@ -76,6 +78,7 @@ class ProjectsFieldTestCase(unittest.TestCase):
         ws.add_task_to_project.assert_called_once_with(
                 123, {"id": 4, "name": "Project 4"})
         ws.remove_task_from_project.assert_called_once_with(123, 1)
+
 
 class CustomFieldsFieldTestCase(unittest.TestCase):
     @staticmethod
@@ -146,6 +149,56 @@ class CustomFieldsFieldTestCase(unittest.TestCase):
                 mock.call(123, {"id": 5, "type": "text", "text_value": "new field"}),
                 ])
         ws.remove_custom_field_value.assert_called_once_with(123, 1)
+
+
+class FollowerFieldTestCase(unittest.TestCase):
+
+    def test_no_followers(self):
+        ws = mock.Mock(spec=workspace.Workspace)
+        ws.get_followers.return_value = []
+
+        field = fields.FollowersField(ws)
+
+        self.assertIsNone(field.get_data_from_task({"id": 123}))
+
+        ws.add_follower.assert_not_called()
+        ws.remove_follower.assert_not_called()
+
+    def test_same_followers(self):
+        ws = mock.Mock(spec=workspace.Workspace)
+        ws.get_followers.return_value = [1, 2, 3]
+
+        field = fields.FollowersField(ws)
+
+        self.assertIsNone(field.get_data_from_task({
+            "id": 123,
+            "followers": [
+                { "id": 1, "name": "foo" },
+                { "id": 2, "name": "bar" },
+                { "id": 3, "name": "baz" }
+            ]
+        }))
+
+        ws.add_follower.assert_not_called()
+        ws.remove_follower.assert_not_called()
+
+    def test_different_followers(self):
+        ws = mock.Mock(spec=workspace.Workspace)
+        ws.get_followers.return_value = [1, 2, 3]
+
+        field = fields.FollowersField(ws)
+
+        self.assertIsNone(field.get_data_from_task({
+            "id": 123,
+            "followers": [
+                { "id": 2, "name": "foo" },
+                { "id": 3, "name": "bar" },
+                { "id": 4, "name": "baz" }
+            ]
+        }))
+
+        ws.remove_follower.called_once_with(123, 1)
+        ws.add_follower.called_once_with(123, 4)
 
 
 if __name__ == '__main__':

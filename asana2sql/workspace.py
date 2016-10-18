@@ -43,6 +43,11 @@ CREATE_FOLLOWERS_TABLE = (
         user_id INTEGER NOT NULL,
         PRIMARY KEY (task_id, user_id));
         """)
+SELECT_FOLLOWERS = 'SELECT * from "{table_name}" WHERE task_id = ?;';
+INSERT_FOLLOWER = (
+        """INSERT OR REPLACE INTO "{table_name}" VALUES (?, ?);""")
+DELETE_FOLLOWER = (
+        """DELETE FROM "{table_name}" WHERE user_id = ? AND task_id = ?;""")
 
 CUSTOM_FIELDS_TABLE_NAME = "custom_fields"
 CREATE_CUSTOM_FIELDS_TABLE = (
@@ -174,7 +179,26 @@ class Workspace(object):
         self.users.add(user)
 
     def add_project(self, project):
-        self.projects.add(project);
+        self.projects.add(project)
+
+    # Followers
+    def get_followers(self, task_id):
+        return {row[0] for row in self._db_client.read(
+                SELECT_FOLLOWERS.format(table_name=self.followers_table_name()), task_id)}
+
+
+    def add_follower(self, task_id, user):
+        self.add_user(user)
+        self._db_client.write(
+                INSERT_FOLLOWER.format(
+                    table_name=self.followers_table_name()),
+                (task_id, user["id"]))
+
+    def remove_follower(self, task_id, user):
+        self._db_client.write(
+                DELETE_FOLLOWER.format(
+                    table_name=self.followers_table_name()),
+                (task_id, user["id"]))
 
     # Task Membership
     def task_memberships(self, task_id):
