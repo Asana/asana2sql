@@ -1,5 +1,3 @@
-import util
-
 from asana2sql.cache import Cache
 
 PROJECTS_TABLE_NAME = "projects"
@@ -274,7 +272,7 @@ class Workspace(object):
                     enum_option["enabled"],
                     enum_option["color"])
 
-        for id in old_enum_options.iterkeys():
+        for id in old_enum_options.keys():
             self._db_client.write(
                     DELETE_CUSTOM_FIELD_ENUM_VALUE.format(
                         table_name=self.custom_field_enum_values_table_name()),
