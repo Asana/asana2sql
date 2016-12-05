@@ -1,4 +1,4 @@
-from asana2sql.field import Field, SimpleField, SqlType
+from asana2sql.Field import Field, SimpleField, SqlType
 
 
 def TaskIdPrimaryKeyField():
