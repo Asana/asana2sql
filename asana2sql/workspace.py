@@ -192,11 +192,11 @@ class Workspace(object):
                     table_name=self.followers_table_name()),
                 (task_id, user["id"]))
 
-    def remove_follower(self, task_id, user):
+    def remove_follower(self, task_id, user_id):
         self._db_client.write(
                 DELETE_FOLLOWER.format(
                     table_name=self.followers_table_name()),
-                (task_id, user["id"]))
+                (task_id, user_id))
 
     # Task Membership
     def task_memberships(self, task_id):
