@@ -1,6 +1,5 @@
 from enum import Enum
 import re
-import util
 
 FIELD_DEFINITION_TEMPLATE = """"{name}" {type}"""
 PRIMARY_KEY_DEFINITION_TEMPLATE = """"{name}" {type} NOT NULL PRIMARY KEY"""

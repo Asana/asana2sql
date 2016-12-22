@@ -1,10 +1,9 @@
-import util
+from asana2sql import util
 import asana.error
 import itertools
 
 from asana2sql import fields
 from asana2sql import workspace
-
 
 CREATE_TABLE_TEMPLATE = (
         """CREATE TABLE IF NOT EXISTS "{table_name}" ({columns});""")

@@ -44,7 +44,7 @@ def row(**kwargs):
     row = mock.MagicMock()
     column_definitions = []
     row.__getitem__.side_effect = lambda i: kwargs.values()[i]
-    for k, v in kwargs.iteritems():
+    for k, v in kwargs.items():
         column_definitions.append((k, None, None, None, None, None, None))
         setattr(row, k, v)
     row.cursor_description = column_definitions

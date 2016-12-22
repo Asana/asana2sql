@@ -1,4 +1,4 @@
-from asana2sql.field import Field, SimpleField, SqlType
+from asana2sql.Field import Field, SimpleField, SqlType
 
 
 def TaskIdPrimaryKeyField():
@@ -115,7 +115,7 @@ class CustomFields(Field):
         old_fields = {row.custom_field_id: row
                 for row in self._workspace.task_custom_field_values(task["id"])}
 
-        for field_id, custom_field in custom_fields.iteritems():
+        for field_id, custom_field in custom_fields.items():
             if field_id in old_fields:
                 old_field = old_fields[field_id]
                 del(old_fields[field_id])
@@ -148,7 +148,7 @@ class FollowersField(Field):
         follower_ids = {follower["id"]: follower for follower in task.get("followers", [])}
         old_follower_ids = self._workspace.get_followers(task["id"])
 
-        for follower_id, follower in follower_ids.iteritems():
+        for follower_id, follower in follower_ids.items():
             if follower_id in old_follower_ids:
                 old_follower_ids.remove(follower_id)
             else:
