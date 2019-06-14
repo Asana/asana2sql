@@ -1,3 +1,9 @@
+## !! Maintenance Warning !!
+
+This project is **no longer being actively maintained**. However, we are open to community contributions and will keep this repository available to use as a reference.  Please be mindful of the last commit date when you consider using this project for any business-critical operations.
+
+If you wish to make a change, please open a pull request and assign it to @periodic.
+
 # asana2sql
 
 asana2sql is a utility for exporting Asana data to SQL databases.  It assumes a
